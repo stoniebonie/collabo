@@ -586,7 +586,7 @@
 // CONFIG — trage hier deine Supabase-Credentials ein
 // ════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://vqpgolkmtbavbdlowfes.supabase.co'
-const SUPABASE_KEY  = 'sb_publishable_vhlgadePE2Ur-haM8RUbqA_u-N79Aea'
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGdvbGttdGJhdmJkbG93ZmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMTk2MjYsImV4cCI6MjA5NTc5NTYyNn0.EzNg6BNoARiKyGw_hmPXjrSPghLy8ZiMWeQLJt9c9EY'
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -747,7 +747,7 @@ function translateError(msg) {
 // ════════════════════════════════════════════════════════════
 async function loadCurrentProfile() {
   if (!sb || !currentUser) return
-  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single()
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle()
   currentProfile = data || null
 }
 
