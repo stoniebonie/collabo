@@ -617,24 +617,21 @@ async function initApp() {
 
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-  const { data: { user } } = await sb.auth.getUser()
-  if (user) {
-    currentUser = user
-    await loadCurrentProfile()
-    hideLoading()
-    navigate(currentProfile ? 'dashboard' : 'setup')
-  } else {
-    hideLoading()
-    navigate('landing')
-  }
+  let initialized = false
 
   sb.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth event:', event, session?.user?.email)
-    if (event === 'SIGNED_IN') {
-      currentUser = session.user
-      await loadCurrentProfile()
-      console.log('Profile loaded:', currentProfile)
-      navigate(currentProfile ? 'dashboard' : 'setup')
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if (session?.user) {
+        currentUser = session.user
+        await loadCurrentProfile()
+        console.log('Profile loaded:', currentProfile)
+        if (!initialized) { initialized = true; hideLoading() }
+        navigate(currentProfile ? 'dashboard' : 'setup')
+      } else {
+        if (!initialized) { initialized = true; hideLoading() }
+        navigate('landing')
+      }
     } else if (event === 'SIGNED_OUT') {
       currentUser = null; currentProfile = null
       navigate('landing')
