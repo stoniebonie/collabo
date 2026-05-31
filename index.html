@@ -586,7 +586,7 @@
 // CONFIG — trage hier deine Supabase-Credentials ein
 // ════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://vqpgolkmtbavbdlowfes.supabase.co'
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxcGdvbGttdGJhdmJkbG93ZmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMTk2MjYsImV4cCI6MjA5NTc5NTYyNn0.EzNg6BNoARiKyGw_hmPXjrSPghLy8ZiMWeQLJt9c9EY'
+const SUPABASE_KEY  = 'sb_publishable_vhlgadePE2Ur-haM8RUbqA_u-N79Aea'
 
 // ════════════════════════════════════════════════════════════
 // STATE
@@ -629,9 +629,11 @@ async function initApp() {
   }
 
   sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('Auth event:', event, session?.user?.email)
     if (event === 'SIGNED_IN') {
       currentUser = session.user
       await loadCurrentProfile()
+      console.log('Profile loaded:', currentProfile)
       navigate(currentProfile ? 'dashboard' : 'setup')
     } else if (event === 'SIGNED_OUT') {
       currentUser = null; currentProfile = null
@@ -696,15 +698,18 @@ async function handleRegister(e) {
   errEl.classList.remove('show')
   btn.disabled = true; btn.textContent = 'Wird erstellt…'
 
-  const { error } = await sb.auth.signUp({
+  const { data, error } = await sb.auth.signUp({
     email: document.getElementById('reg-email').value.trim(),
     password: document.getElementById('reg-password').value,
     options: { data: { name: document.getElementById('reg-name').value.trim() } }
   })
 
+  console.log('Register result:', data, error)
   btn.disabled = false; btn.textContent = 'Registrieren →'
   if (error) { errEl.textContent = translateError(error.message); errEl.classList.add('show') }
-  else showToast('Konto erstellt! Bitte E-Mail bestätigen.', 'success')
+  else if (data?.user) {
+    showToast('Konto erstellt! ✓', 'success')
+  }
 }
 
 async function handleLogin(e) {
@@ -715,11 +720,12 @@ async function handleLogin(e) {
   errEl.classList.remove('show')
   btn.disabled = true; btn.textContent = 'Wird angemeldet…'
 
-  const { error } = await sb.auth.signInWithPassword({
+  const { data: loginData, error } = await sb.auth.signInWithPassword({
     email: document.getElementById('login-email').value.trim(),
     password: document.getElementById('login-password').value
   })
 
+  console.log('Login result:', loginData, error)
   btn.disabled = false; btn.textContent = 'Anmelden →'
   if (error) { errEl.textContent = translateError(error.message); errEl.classList.add('show') }
 }
