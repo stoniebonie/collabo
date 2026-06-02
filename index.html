@@ -620,19 +620,21 @@ async function initApp() {
 
   sb.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth event:', event, session?.user?.email)
-    hideLoading()
     try {
       if (session?.user) {
         currentUser = session.user
         try { await loadCurrentProfile() } catch(e) { console.warn('Profile load error:', e); currentProfile = null }
         console.log('Profile loaded:', currentProfile)
+        hideLoading()
         navigate(currentProfile ? 'dashboard' : 'setup')
       } else {
         currentUser = null; currentProfile = null
-        if (event !== 'SIGNED_IN') navigate('landing')
+        hideLoading()
+        if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') navigate('landing')
       }
     } catch(e) {
       console.error('Auth handler error:', e)
+      hideLoading()
     }
   })
 }
@@ -705,6 +707,14 @@ async function handleRegister(e) {
   if (error) { errEl.textContent = translateError(error.message); errEl.classList.add('show') }
   else if (data?.user) {
     showToast('Konto erstellt! ✓', 'success')
+    if (data.session) {
+      // Email confirmation disabled — session exists, onAuthStateChange will navigate
+    } else {
+      // Email confirmation required
+      errEl.style.color = 'var(--success)'
+      errEl.textContent = '✓ Bitte bestätige deine E-Mail, dann kannst du dich anmelden.'
+      errEl.classList.add('show')
+    }
   }
 }
 
