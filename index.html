@@ -61,8 +61,9 @@
     .btn-block { width: 100%; }
 
     /* ── VIEWS ── */
-    .view { display: none; padding-top: 72px; min-height: 100vh; }
-    .view.active { display: block; }
+    .view { display: none !important; padding-top: 72px; min-height: 100vh; }
+    .view.active { display: block !important; }
+    #view-auth.active, #view-setup.active { display: flex !important; }
 
     /* ── LANDING ── */
     #view-landing { padding-top: 0; }
