@@ -647,9 +647,10 @@ function hideLoading() {
 // ROUTER
 // ════════════════════════════════════════════════════════════
 function navigate(view, param) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
+  const flexViews = ['auth','setup']
+  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = 'none' })
   const el = document.getElementById('view-' + view)
-  if (el) el.classList.add('active')
+  if (el) { el.classList.add('active'); el.style.display = flexViews.includes(view) ? 'flex' : 'block' }
   updateNav()
   window.scrollTo(0, 0)
 
