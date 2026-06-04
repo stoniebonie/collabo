@@ -781,6 +781,12 @@ async function handleLogin(e) {
   console.log('Login result:', loginData, error)
   btn.disabled = false; btn.textContent = 'Anmelden →'
   if (error) { errEl.textContent = translateError(error.message); errEl.classList.add('show') }
+  else if (loginData?.user) {
+    currentUser = loginData.user
+    try { await loadCurrentProfile() } catch(e) { currentProfile = null }
+    hideLoading()
+    navigate(currentProfile ? 'dashboard' : 'setup')
+  }
 }
 
 async function handleLogout() {
