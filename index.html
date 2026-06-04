@@ -696,10 +696,17 @@ setTimeout(() => {
 // ROUTER
 // ════════════════════════════════════════════════════════════
 function navigate(view, param) {
+  console.log('navigate() called with:', view, '| currentUser:', !!currentUser, '| currentProfile:', !!currentProfile)
   const flexViews = ['auth','setup']
   document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = 'none' })
   const el = document.getElementById('view-' + view)
-  if (el) { el.classList.add('active'); el.style.display = flexViews.includes(view) ? 'flex' : 'block' }
+  if (el) {
+    el.classList.add('active')
+    el.style.display = flexViews.includes(view) ? 'flex' : 'block'
+    console.log('view-' + view + ' display set to:', el.style.display)
+  } else {
+    console.error('View not found: view-' + view)
+  }
   updateNav()
   window.scrollTo(0, 0)
 
