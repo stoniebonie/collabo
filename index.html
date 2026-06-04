@@ -174,8 +174,15 @@
     .meta-tag { font-size: 0.82rem; color: var(--muted); }
     .profile-section { background: var(--card); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.06); }
     .profile-section h4 { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-    .social-links { display: flex; gap: 12px; flex-wrap: wrap; }
-    .social-link { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 100px; font-size: 0.82rem; color: var(--text); }
+    .social-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .social-link { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; color: #fff; text-decoration: none; transition: transform 0.2s, opacity 0.2s; }
+    .social-link:hover { transform: translateY(-2px); opacity: 0.9; }
+    .social-link.instagram { background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+    .social-link.tiktok { background: #010101; border: 1px solid #333; }
+    .social-link.youtube { background: #FF0000; }
+    .social-link.twitch { background: #9146FF; }
+    .social-link.website { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--text); }
+    .social-link.other { background: rgba(108,60,225,0.2); border: 1px solid rgba(108,60,225,0.4); color: var(--primary-light); }
 
     /* ── OFFER MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
@@ -536,18 +543,40 @@
         <div class="form-group"><label>Profilfarbe</label><div class="color-grid" id="edit-color-grid"></div><input type="hidden" id="edit-color" /></div>
       </div>
       <div class="edit-section" id="edit-influencer-section">
-        <h3>Social Media</h3>
+        <h3>Social Media & Links</h3>
         <div class="form-row">
-          <div class="form-group"><label>Instagram</label><input type="text" id="edit-instagram" placeholder="@username" /></div>
-          <div class="form-group"><label>TikTok</label><input type="text" id="edit-tiktok" placeholder="@username" /></div>
+          <div class="form-group">
+            <label>📸 Instagram</label>
+            <input type="text" id="edit-instagram" placeholder="@username" />
+          </div>
+          <div class="form-group">
+            <label>🎵 TikTok</label>
+            <input type="text" id="edit-tiktok" placeholder="@username" />
+          </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>YouTube</label><input type="text" id="edit-youtube" placeholder="Kanalname" /></div>
-          <div class="form-group"><label>Follower (gesamt)</label><input type="number" id="edit-followers" placeholder="z.B. 15000" /></div>
+          <div class="form-group">
+            <label>▶️ YouTube</label>
+            <input type="text" id="edit-youtube" placeholder="Kanalname oder URL" />
+          </div>
+          <div class="form-group">
+            <label>🎮 Twitch</label>
+            <input type="text" id="edit-twitch" placeholder="username" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>👥 Follower gesamt</label>
+            <input type="number" id="edit-followers" placeholder="z.B. 15000" />
+          </div>
+          <div class="form-group">
+            <label>🔗 Sonstiger Link</label>
+            <input type="url" id="edit-other-link" placeholder="https://..." />
+          </div>
         </div>
       </div>
       <div class="edit-section">
-        <h3>Website / Link</h3>
+        <h3>Website</h3>
         <div class="form-group"><input type="url" id="edit-website" placeholder="https://deine-seite.de" /></div>
       </div>
       <div class="form-error" id="edit-error"></div>
@@ -813,7 +842,9 @@ function fillEditForm() {
   document.getElementById('edit-instagram').value = p.instagram || ''
   document.getElementById('edit-tiktok').value = p.tiktok || ''
   document.getElementById('edit-youtube').value = p.youtube || ''
+  document.getElementById('edit-twitch').value = p.twitch || ''
   document.getElementById('edit-followers').value = p.followers_count || ''
+  document.getElementById('edit-other-link').value = p.other_link || ''
   document.getElementById('edit-website').value = p.website || ''
   document.getElementById('edit-color').value = p.avatar_color || '#6C3CE1'
   document.getElementById('edit-influencer-section').style.display = p.role === 'influencer' ? 'block' : 'none'
@@ -840,7 +871,9 @@ async function handleProfileEdit(e) {
     updates.instagram = document.getElementById('edit-instagram').value.trim()
     updates.tiktok = document.getElementById('edit-tiktok').value.trim()
     updates.youtube = document.getElementById('edit-youtube').value.trim()
+    updates.twitch = document.getElementById('edit-twitch').value.trim()
     updates.followers_count = parseInt(document.getElementById('edit-followers').value) || null
+    updates.other_link = document.getElementById('edit-other-link').value.trim()
   }
 
   const { error } = await sb.from('profiles').update(updates).eq('id', currentUser.id)
@@ -934,10 +967,12 @@ async function showProfileView(userId) {
   const canOffer = currentUser && !isOwn
 
   const socials = [
-    p.instagram && `<span class="social-link">📸 ${esc(p.instagram)}</span>`,
-    p.tiktok && `<span class="social-link">🎵 ${esc(p.tiktok)}</span>`,
-    p.youtube && `<span class="social-link">▶️ ${esc(p.youtube)}</span>`,
-    p.website && `<a class="social-link" href="${esc(p.website)}" target="_blank">🌐 Website</a>`,
+    p.instagram && `<a class="social-link instagram" href="https://instagram.com/${esc(p.instagram.replace('@',''))}" target="_blank">📸 Instagram</a>`,
+    p.tiktok && `<a class="social-link tiktok" href="https://tiktok.com/@${esc(p.tiktok.replace('@',''))}" target="_blank">🎵 TikTok</a>`,
+    p.youtube && `<a class="social-link youtube" href="https://youtube.com/@${esc(p.youtube.replace('@',''))}" target="_blank">▶️ YouTube</a>`,
+    p.twitch && `<a class="social-link twitch" href="https://twitch.tv/${esc(p.twitch.replace('@',''))}" target="_blank">🎮 Twitch</a>`,
+    p.other_link && `<a class="social-link other" href="${esc(p.other_link)}" target="_blank">🔗 Link</a>`,
+    p.website && `<a class="social-link website" href="${esc(p.website)}" target="_blank">🌐 Website</a>`,
   ].filter(Boolean).join('')
 
   container.innerHTML = `
@@ -957,7 +992,7 @@ async function showProfileView(userId) {
       </div>
     </div>
     ${p.bio ? `<div class="profile-section"><h4>Über</h4><p style="color:var(--text);line-height:1.7">${esc(p.bio)}</p></div>` : ''}
-    ${socials ? `<div class="profile-section"><h4>Links & Social Media</h4><div class="social-links">${socials}</div></div>` : ''}
+    ${socials ? `<div class="profile-section"><h4>🔗 Links & Social Media</h4><div class="social-links" style="margin-top:4px">${socials}</div></div>` : ''}
     <p style="color:var(--muted);font-size:0.8rem;margin-top:16px">Mitglied seit ${new Date(p.created_at).toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</p>
   `
 }
