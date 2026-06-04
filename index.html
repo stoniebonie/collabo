@@ -696,7 +696,11 @@ setTimeout(() => {
 // ROUTER
 // ════════════════════════════════════════════════════════════
 function navigate(view, param) {
-  console.log('navigate() called with:', view, '| currentUser:', !!currentUser, '| currentProfile:', !!currentProfile)
+  // Schutz: eingeloggte User dürfen nicht zur auth-Seite
+  if (view === 'auth' && currentUser) {
+    navigate(currentProfile ? 'dashboard' : 'setup')
+    return
+  }
   const flexViews = ['auth','setup']
   document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = 'none' })
   const el = document.getElementById('view-' + view)
