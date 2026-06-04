@@ -211,7 +211,7 @@
     .offer-actions { display: flex; gap: 8px; }
 
     /* ── PROFILE EDIT ── */
-    .profile-edit-container { max-width: 600px; margin: 0 auto; padding: 40px 6% 80px; }
+    .profile-edit-container { max-width: 860px; margin: 0 auto; padding: 40px 6% 80px; }
     .profile-edit-container h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 28px; }
     .edit-section { background: var(--card); border-radius: var(--radius); padding: 28px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 20px; }
     .edit-section h3 { font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
@@ -547,27 +547,35 @@
         <div class="form-row">
           <div class="form-group">
             <label>📸 Instagram</label>
-            <input type="text" id="edit-instagram" placeholder="@username" />
+            <input type="url" id="edit-instagram" placeholder="https://instagram.com/deinprofil" />
           </div>
           <div class="form-group">
             <label>🎵 TikTok</label>
-            <input type="text" id="edit-tiktok" placeholder="@username" />
+            <input type="url" id="edit-tiktok" placeholder="https://tiktok.com/@deinprofil" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>▶️ YouTube</label>
-            <input type="text" id="edit-youtube" placeholder="Kanalname oder URL" />
+            <input type="url" id="edit-youtube" placeholder="https://youtube.com/@deinkanal" />
           </div>
           <div class="form-group">
             <label>🎮 Twitch</label>
-            <input type="text" id="edit-twitch" placeholder="username" />
+            <input type="url" id="edit-twitch" placeholder="https://twitch.tv/deinkanal" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>👥 Follower gesamt</label>
-            <input type="number" id="edit-followers" placeholder="z.B. 15000" />
+            <label>👥 Follower (stärkste Plattform)</label>
+            <div style="display:flex;gap:8px">
+              <input type="number" id="edit-followers" placeholder="z.B. 15000" style="flex:1" />
+              <select id="edit-followers-platform" style="width:140px">
+                <option value="Instagram">Instagram</option>
+                <option value="TikTok">TikTok</option>
+                <option value="YouTube">YouTube</option>
+                <option value="Twitch">Twitch</option>
+              </select>
+            </div>
           </div>
           <div class="form-group">
             <label>🔗 Sonstiger Link</label>
@@ -844,6 +852,7 @@ function fillEditForm() {
   document.getElementById('edit-youtube').value = p.youtube || ''
   document.getElementById('edit-twitch').value = p.twitch || ''
   document.getElementById('edit-followers').value = p.followers_count || ''
+  document.getElementById('edit-followers-platform').value = p.followers_platform || 'Instagram'
   document.getElementById('edit-other-link').value = p.other_link || ''
   document.getElementById('edit-website').value = p.website || ''
   document.getElementById('edit-color').value = p.avatar_color || '#6C3CE1'
@@ -873,6 +882,7 @@ async function handleProfileEdit(e) {
     updates.youtube = document.getElementById('edit-youtube').value.trim()
     updates.twitch = document.getElementById('edit-twitch').value.trim()
     updates.followers_count = parseInt(document.getElementById('edit-followers').value) || null
+    updates.followers_platform = document.getElementById('edit-followers-platform').value
     updates.other_link = document.getElementById('edit-other-link').value.trim()
   }
 
@@ -967,10 +977,10 @@ async function showProfileView(userId) {
   const canOffer = currentUser && !isOwn
 
   const socials = [
-    p.instagram && `<a class="social-link instagram" href="https://instagram.com/${esc(p.instagram.replace('@',''))}" target="_blank">📸 Instagram</a>`,
-    p.tiktok && `<a class="social-link tiktok" href="https://tiktok.com/@${esc(p.tiktok.replace('@',''))}" target="_blank">🎵 TikTok</a>`,
-    p.youtube && `<a class="social-link youtube" href="https://youtube.com/@${esc(p.youtube.replace('@',''))}" target="_blank">▶️ YouTube</a>`,
-    p.twitch && `<a class="social-link twitch" href="https://twitch.tv/${esc(p.twitch.replace('@',''))}" target="_blank">🎮 Twitch</a>`,
+    p.instagram && `<a class="social-link instagram" href="${esc(p.instagram)}" target="_blank">📸 Instagram</a>`,
+    p.tiktok && `<a class="social-link tiktok" href="${esc(p.tiktok)}" target="_blank">🎵 TikTok</a>`,
+    p.youtube && `<a class="social-link youtube" href="${esc(p.youtube)}" target="_blank">▶️ YouTube</a>`,
+    p.twitch && `<a class="social-link twitch" href="${esc(p.twitch)}" target="_blank">🎮 Twitch</a>`,
     p.other_link && `<a class="social-link other" href="${esc(p.other_link)}" target="_blank">🔗 Link</a>`,
     p.website && `<a class="social-link website" href="${esc(p.website)}" target="_blank">🌐 Website</a>`,
   ].filter(Boolean).join('')
@@ -985,7 +995,7 @@ async function showProfileView(userId) {
           <span class="role-badge ${p.role}" style="padding:4px 14px">${p.role === 'influencer' ? '🎯 Influencer' : '🏪 Unternehmen'}</span>
           ${p.category ? `<span class="meta-tag">📂 ${esc(p.category)}</span>` : ''}
           ${p.location ? `<span class="meta-tag">📍 ${esc(p.location)}</span>` : ''}
-          ${p.followers_count ? `<span class="meta-tag">👥 ${formatNum(p.followers_count)} Follower</span>` : ''}
+          ${p.followers_count ? `<span class="meta-tag">👥 ${formatNum(p.followers_count)} Follower${p.followers_platform ? ' auf ' + esc(p.followers_platform) : ''}</span>` : ''}
         </div>
         ${canOffer ? `<button class="btn btn-primary" onclick="openOfferModal('${p.id}','${esc(p.name)}')">Angebot senden</button>` : ''}
         ${isOwn ? `<button class="btn btn-outline" onclick="navigate('profile-edit')">Profil bearbeiten</button>` : ''}
