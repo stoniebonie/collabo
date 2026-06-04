@@ -634,6 +634,7 @@ let currentUser = null
 let currentProfile = null
 let offerTabMode = 'received'
 let searchTimer = null
+let authHandled = false // verhindert doppelte Navigation durch onAuthStateChange
 
 const COLORS = ['#6C3CE1','#E13C6C','#3C8BE1','#E1943C','#3CE17A','#E1E13C','#9B3CE1','#3CE1D4']
 
@@ -660,14 +661,24 @@ async function initApp() {
     try {
       if (session?.user) {
         currentUser = session.user
-        try { await loadCurrentProfile() } catch(e) { console.warn('Profile load error:', e); currentProfile = null }
-        console.log('Profile loaded:', currentProfile)
-        hideLoading()
-        navigate(currentProfile ? 'dashboard' : 'setup')
-      } else {
+        if (!authHandled) {
+          authHandled = true
+          try { await loadCurrentProfile() } catch(e) { currentProfile = null }
+          hideLoading()
+          navigate(currentProfile ? 'dashboard' : 'setup')
+        } else {
+          // Session refresh — nur User updaten, nicht navigieren
+          currentUser = session.user
+          hideLoading()
+        }
+      } else if (event === 'SIGNED_OUT') {
         currentUser = null; currentProfile = null
+        authHandled = false
         hideLoading()
         navigate('landing')
+      } else {
+        hideLoading()
+        if (!currentUser) navigate('landing')
       }
     } catch(e) {
       console.error('Auth handler error:', e)
@@ -851,22 +862,30 @@ async function handleProfileSetup(e) {
   const btn = document.getElementById('setup-btn')
   btn.disabled = true; btn.textContent = 'Wird gespeichert…'
 
-  const { error } = await sb.from('profiles').upsert({
-    id: currentUser.id,
-    role: selectedRole,
-    name: document.getElementById('setup-name').value.trim(),
-    category: document.getElementById('setup-category').value,
-    location: document.getElementById('setup-location').value.trim(),
-    bio: document.getElementById('setup-bio').value.trim(),
-    avatar_color: document.getElementById('setup-color').value || '#6C3CE1'
-  })
+  try {
+    const { error } = await sb.from('profiles').upsert({
+      id: currentUser.id,
+      role: selectedRole,
+      name: document.getElementById('setup-name').value.trim(),
+      category: document.getElementById('setup-category').value,
+      location: document.getElementById('setup-location').value.trim(),
+      bio: document.getElementById('setup-bio').value.trim(),
+      avatar_color: document.getElementById('setup-color').value || '#6C3CE1'
+    })
 
-  btn.disabled = false; btn.textContent = 'Profil erstellen →'
-  if (error) { errEl.textContent = error.message; errEl.classList.add('show') }
-  else {
-    await loadCurrentProfile()
-    showToast('Profil erstellt! Willkommen bei Collabo 🎉', 'success')
-    navigate('dashboard')
+    btn.disabled = false; btn.textContent = 'Profil erstellen →'
+
+    if (error) {
+      errEl.textContent = error.message; errEl.classList.add('show')
+    } else {
+      currentProfile = { id: currentUser.id, role: selectedRole, name: document.getElementById('setup-name').value.trim() }
+      showToast('Profil erstellt! Willkommen bei Collabo 🎉', 'success')
+      navigate('dashboard')
+      loadCurrentProfile() // im Hintergrund nachladen
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Profil erstellen →'
+    errEl.textContent = 'Fehler beim Speichern. Bitte nochmal versuchen.'; errEl.classList.add('show')
   }
 }
 
