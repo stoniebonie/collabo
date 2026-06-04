@@ -667,7 +667,7 @@ async function initApp() {
       } else {
         currentUser = null; currentProfile = null
         hideLoading()
-        if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') navigate('landing')
+        navigate('landing')
       }
     } catch(e) {
       console.error('Auth handler error:', e)
