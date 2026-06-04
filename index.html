@@ -802,6 +802,9 @@ async function handleLogin(e) {
 
 async function handleLogout() {
   if (sb) await sb.auth.signOut()
+  currentUser = null
+  currentProfile = null
+  navigate('landing')
 }
 
 function translateError(msg) {
