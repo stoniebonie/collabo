@@ -678,9 +678,19 @@ async function initApp() {
 
 function hideLoading() {
   const el = document.getElementById('app-loading')
+  if (!el || el.style.display === 'none') return
   el.style.opacity = '0'
-  setTimeout(() => el.style.display = 'none', 300)
+  setTimeout(() => { el.style.display = 'none' }, 300)
 }
+
+// Sicherheits-Timeout: nach 5s immer ausblenden egal was
+setTimeout(() => {
+  const el = document.getElementById('app-loading')
+  if (el && el.style.display !== 'none') {
+    el.style.display = 'none'
+    if (!currentUser) navigate('landing')
+  }
+}, 5000)
 
 // ════════════════════════════════════════════════════════════
 // ROUTER
