@@ -703,14 +703,9 @@ function hideLoading() {
 // Sicherheits-Timeout: nach 5s auf jeden Fall etwas anzeigen
 setTimeout(() => {
   const el = document.getElementById('app-loading')
-  const isHidden = el && (el.style.display === 'none' || el.style.opacity === '0')
-  if (el && !isHidden) {
+  if (el && el.style.display !== 'none') {
     el.style.display = 'none'
-    if (currentUser) {
-      navigate(currentProfile ? 'dashboard' : 'setup')
-    } else {
-      navigate('landing')
-    }
+    navigate(currentUser ? (currentProfile ? 'dashboard' : 'setup') : 'landing')
   }
 }, 5000)
 
@@ -718,18 +713,16 @@ setTimeout(() => {
 // ROUTER
 // ════════════════════════════════════════════════════════════
 function navigate(view, param) {
-  // Eingeloggte User → nicht zur auth- oder landing-Seite
-  if ((view === 'auth' || view === 'landing') && currentUser) {
+  // Eingeloggte User dürfen nicht zur Auth-Seite
+  if (view === 'auth' && currentUser) {
     navigate(currentProfile ? 'dashboard' : 'setup')
     return
   }
   const flexViews = ['auth','setup']
-  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = 'none' })
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
   const el = document.getElementById('view-' + view)
   if (el) {
     el.classList.add('active')
-    el.style.display = flexViews.includes(view) ? 'flex' : 'block'
-    console.log('view-' + view + ' display set to:', el.style.display)
   } else {
     console.error('View not found: view-' + view)
   }
