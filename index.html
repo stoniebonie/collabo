@@ -634,7 +634,7 @@ let currentUser = null
 let currentProfile = null
 let offerTabMode = 'received'
 let searchTimer = null
-let authHandled = false // verhindert doppelte Navigation durch onAuthStateChange
+let authHandled = false
 
 const COLORS = ['#6C3CE1','#E13C6C','#3C8BE1','#E1943C','#3CE17A','#E1E13C','#9B3CE1','#3CE1D4']
 
@@ -659,24 +659,30 @@ async function initApp() {
   sb.auth.onAuthStateChange(async (event, session) => {
     console.log('Auth event:', event, session?.user?.email)
     try {
+      if (event === 'SIGNED_OUT') {
+        currentUser = null; currentProfile = null
+        authHandled = false; navigating = false
+        hideLoading()
+        navigate('landing')
+        return
+      }
+
       if (session?.user) {
         currentUser = session.user
-        if (!authHandled) {
+
+        // Nur bei echten Login-Events navigieren, nicht bei Token-Refresh etc.
+        const isLoginEvent = event === 'SIGNED_IN' || event === 'SIGNED_UP' || event === 'INITIAL_SESSION'
+        if (isLoginEvent && !authHandled) {
           authHandled = true
           try { await loadCurrentProfile() } catch(e) { currentProfile = null }
           hideLoading()
           navigate(currentProfile ? 'dashboard' : 'setup')
         } else {
-          // Session refresh — nur User updaten, nicht navigieren
-          currentUser = session.user
+          // TOKEN_REFRESHED o.ä. — nur User aktualisieren
           hideLoading()
         }
-      } else if (event === 'SIGNED_OUT') {
-        currentUser = null; currentProfile = null
-        authHandled = false
-        hideLoading()
-        navigate('landing')
       } else {
+        // Kein User (z.B. INITIAL_SESSION ohne gespeicherte Session)
         hideLoading()
         if (!currentUser) navigate('landing')
       }
@@ -803,12 +809,7 @@ async function handleLogin(e) {
   console.log('Login result:', loginData, error)
   btn.disabled = false; btn.textContent = 'Anmelden →'
   if (error) { errEl.textContent = translateError(error.message); errEl.classList.add('show') }
-  else if (loginData?.user) {
-    currentUser = loginData.user
-    try { await loadCurrentProfile() } catch(e) { currentProfile = null }
-    hideLoading()
-    navigate(currentProfile ? 'dashboard' : 'setup')
-  }
+  // Navigation läuft ausschließlich über onAuthStateChange (SIGNED_IN-Event)
 }
 
 async function handleLogout() {
@@ -863,7 +864,7 @@ async function handleProfileSetup(e) {
   btn.disabled = true; btn.textContent = 'Wird gespeichert…'
 
   try {
-    const { error } = await sb.from('profiles').upsert({
+    const upsertPromise = sb.from('profiles').upsert({
       id: currentUser.id,
       role: selectedRole,
       name: document.getElementById('setup-name').value.trim(),
@@ -872,6 +873,11 @@ async function handleProfileSetup(e) {
       bio: document.getElementById('setup-bio').value.trim(),
       avatar_color: document.getElementById('setup-color').value || '#6C3CE1'
     })
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 10000)
+    )
+
+    const { error } = await Promise.race([upsertPromise, timeoutPromise])
 
     btn.disabled = false; btn.textContent = 'Profil erstellen →'
 
@@ -885,7 +891,10 @@ async function handleProfileSetup(e) {
     }
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Profil erstellen →'
-    errEl.textContent = 'Fehler beim Speichern. Bitte nochmal versuchen.'; errEl.classList.add('show')
+    const msg = e.message === 'timeout'
+      ? 'Zeitüberschreitung – bitte Verbindung prüfen und nochmal versuchen.'
+      : 'Fehler beim Speichern. Bitte nochmal versuchen.'
+    errEl.textContent = msg; errEl.classList.add('show')
   }
 }
 
