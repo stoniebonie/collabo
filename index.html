@@ -261,7 +261,7 @@
       <a onclick="navigate('browse')">Entdecken</a>
       <a onclick="navigate('offers')" id="nav-offers-link">Angebote <span id="nav-badge" style="display:none" class="badge"></span></a>
       <div class="nav-avatar" id="nav-avatar" onclick="navigate('profile-edit')" title="Profil bearbeiten"></div>
-      <a onclick="handleLogout()" style="color:var(--muted);font-size:0.85rem;">Logout</a>
+      <a onclick="handleLogout()" id="logout-btn" style="color:var(--muted);font-size:0.85rem;cursor:pointer;">Logout</a>
     </span>
     <span id="nav-guest-links" style="display:flex;gap:1rem;align-items:center;">
       <button class="btn btn-outline" onclick="navigate('auth','login')">Anmelden</button>
@@ -713,8 +713,8 @@ setTimeout(() => {
 // ROUTER
 // ════════════════════════════════════════════════════════════
 function navigate(view, param) {
-  // Schutz: eingeloggte User dürfen nicht zur auth-Seite
-  if (view === 'auth' && currentUser) {
+  // Eingeloggte User → nicht zur auth- oder landing-Seite
+  if ((view === 'auth' || view === 'landing') && currentUser) {
     navigate(currentProfile ? 'dashboard' : 'setup')
     return
   }
@@ -813,9 +813,13 @@ async function handleLogin(e) {
 }
 
 async function handleLogout() {
-  if (sb) await sb.auth.signOut()
+  const btn = document.getElementById('logout-btn')
+  if (btn) btn.textContent = 'Abmelden…'
+  authHandled = false
   currentUser = null
   currentProfile = null
+  if (sb) await sb.auth.signOut()
+  if (btn) btn.textContent = 'Logout'
   navigate('landing')
 }
 
