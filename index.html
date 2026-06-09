@@ -674,6 +674,18 @@ async function initApp() {
         const isLoginEvent = event === 'SIGNED_IN' || event === 'SIGNED_UP' || event === 'INITIAL_SESSION'
         if (isLoginEvent && !authHandled) {
           authHandled = true
+
+          // Prüfen ob der User noch wirklich in Supabase existiert (nicht gelöscht)
+          const { error: userError } = await sb.auth.getUser()
+          if (userError) {
+            console.warn('Session ungültig (User gelöscht?):', userError.message)
+            await sb.auth.signOut()
+            currentUser = null; currentProfile = null; authHandled = false
+            hideLoading()
+            navigate('landing')
+            return
+          }
+
           try { await loadCurrentProfile() } catch(e) { currentProfile = null }
           hideLoading()
           navigate(currentProfile ? 'dashboard' : 'setup')
