@@ -257,11 +257,11 @@
   <div class="logo" onclick="navigate('landing')">Collabo</div>
   <div class="nav-links" id="nav-links">
     <a onclick="navigate('landing')">Start</a>
-    <span id="nav-auth-links" style="display:none;display:flex;gap:1.5rem;align-items:center;">
+    <span id="nav-auth-links" style="display:none;gap:1.5rem;align-items:center;">
       <a onclick="navigate('browse')">Entdecken</a>
       <a onclick="navigate('offers')" id="nav-offers-link">Angebote <span id="nav-badge" style="display:none" class="badge"></span></a>
       <div class="nav-avatar" id="nav-avatar" onclick="navigate('profile-edit')" title="Profil bearbeiten"></div>
-      <a onclick="handleLogout()" id="logout-btn" style="color:var(--muted);font-size:0.85rem;cursor:pointer;">Logout</a>
+      <button class="btn btn-outline" onclick="handleLogout()" id="logout-btn">Abmelden</button>
     </span>
     <span id="nav-guest-links" style="display:flex;gap:1rem;align-items:center;">
       <button class="btn btn-outline" onclick="navigate('auth','login')">Anmelden</button>
@@ -819,7 +819,7 @@ async function handleLogout() {
   currentUser = null
   currentProfile = null
   if (sb) await sb.auth.signOut()
-  if (btn) btn.textContent = 'Logout'
+  if (btn) btn.textContent = 'Abmelden'
   navigate('landing')
 }
 
