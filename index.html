@@ -812,12 +812,22 @@ async function handleLogin(e) {
 
 async function handleLogout() {
   const btn = document.getElementById('logout-btn')
-  if (btn) btn.textContent = 'Abmelden…'
-  authHandled = false
+  if (btn) { btn.textContent = 'Abmelden…'; btn.disabled = true }
+
+  // Zustand sofort zurücksetzen
   currentUser = null
   currentProfile = null
-  if (sb) await sb.auth.signOut()
-  if (btn) btn.textContent = 'Abmelden'
+  authHandled = false
+
+  // signOut mit Timeout — hängt sich sonst manchmal auf
+  try {
+    const signOutPromise = sb ? sb.auth.signOut() : Promise.resolve()
+    await Promise.race([signOutPromise, new Promise(r => setTimeout(r, 3000))])
+  } catch(e) {
+    console.warn('signOut error (ignoriert):', e)
+  }
+
+  if (btn) { btn.textContent = 'Abmelden'; btn.disabled = false }
   navigate('landing')
 }
 
@@ -834,7 +844,9 @@ function translateError(msg) {
 // ════════════════════════════════════════════════════════════
 async function loadCurrentProfile() {
   if (!sb || !currentUser) return
-  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle()
+  const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle()
+  if (error) console.error('loadCurrentProfile error:', error)
+  console.log('loadCurrentProfile result:', data)
   currentProfile = data || null
 }
 
