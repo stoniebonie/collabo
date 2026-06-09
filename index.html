@@ -661,7 +661,7 @@ async function initApp() {
     try {
       if (event === 'SIGNED_OUT') {
         currentUser = null; currentProfile = null
-        authHandled = false; navigating = false
+        authHandled = false
         hideLoading()
         navigate('landing')
         return
@@ -700,12 +700,17 @@ function hideLoading() {
   setTimeout(() => { el.style.display = 'none' }, 300)
 }
 
-// Sicherheits-Timeout: nach 5s immer ausblenden egal was
+// Sicherheits-Timeout: nach 5s auf jeden Fall etwas anzeigen
 setTimeout(() => {
   const el = document.getElementById('app-loading')
-  if (el && el.style.display !== 'none') {
+  const isHidden = el && (el.style.display === 'none' || el.style.opacity === '0')
+  if (el && !isHidden) {
     el.style.display = 'none'
-    if (!currentUser) navigate('landing')
+    if (currentUser) {
+      navigate(currentProfile ? 'dashboard' : 'setup')
+    } else {
+      navigate('landing')
+    }
   }
 }, 5000)
 
