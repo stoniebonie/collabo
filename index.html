@@ -208,7 +208,26 @@
     .status-pending { background: rgba(245,158,11,0.15); color: var(--secondary); }
     .status-accepted { background: rgba(16,185,129,0.15); color: var(--success); }
     .status-declined { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .status-open { background: rgba(16,185,129,0.15); color: var(--success); }
+    .status-closed { background: rgba(148,163,184,0.15); color: var(--muted); }
     .offer-actions { display: flex; gap: 8px; }
+
+    /* ── CAMPAIGNS VIEW ── */
+    .campaigns-container { max-width: 900px; margin: 0 auto; padding: 32px 6% 80px; }
+    .campaigns-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .campaigns-header h2 { font-size: 1.5rem; font-weight: 800; }
+    .campaigns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .campaign-card { background: var(--card); border-radius: var(--radius); padding: 24px; border: 1px solid rgba(255,255,255,0.06); transition: all 0.25s; }
+    .campaign-card:hover { border-color: rgba(245,158,11,0.35); transform: translateY(-3px); }
+    .campaign-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 8px; }
+    .campaign-card h4 { font-size: 1rem; font-weight: 700; flex: 1; }
+    .campaign-company { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .campaign-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .campaign-company-name { font-size: 0.82rem; color: var(--muted); }
+    .campaign-desc { font-size: 0.88rem; color: var(--muted); margin-bottom: 14px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .campaign-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .campaign-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .campaign-manage-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); }
 
     /* ── PROFILE EDIT ── */
     .profile-edit-container { max-width: 860px; margin: 0 auto; padding: 40px 6% 80px; }
@@ -259,6 +278,7 @@
     <a onclick="navigate('landing')">Start</a>
     <span id="nav-auth-links" style="display:none;gap:1.5rem;align-items:center;">
       <a onclick="navigate('browse')">Entdecken</a>
+      <a onclick="navigate('campaigns')">Kampagnen</a>
       <a onclick="navigate('offers')" id="nav-offers-link">Angebote <span id="nav-badge" style="display:none" class="badge"></span></a>
       <div class="nav-avatar" id="nav-avatar" onclick="navigate('profile-edit')" title="Profil bearbeiten"></div>
       <button class="btn btn-outline" onclick="handleLogout()" id="logout-btn">Abmelden</button>
@@ -458,6 +478,11 @@
       <h3>Mein Profil ansehen</h3>
       <p>So sehen dich andere Nutzer auf Collabo.</p>
     </div>
+    <div class="dash-card" id="dash-campaigns-card" style="display:none" onclick="navigate('campaigns')">
+      <div class="card-icon">📢</div>
+      <h3>Meine Kampagnen</h3>
+      <p>Erstelle Kooperationsausschreibungen und finde passende Influencer.</p>
+    </div>
   </div>
 </div>
 
@@ -592,6 +617,47 @@
         <button type="submit" class="btn btn-primary btn-lg" id="edit-btn">Speichern</button>
         <button type="button" class="btn btn-outline btn-lg" onclick="navigate('dashboard')">Abbrechen</button>
       </div>
+    </form>
+  </div>
+</div>
+
+<!-- CAMPAIGNS -->
+<div id="view-campaigns" class="view">
+  <div class="campaigns-container">
+    <div class="campaigns-header">
+      <h2 id="campaigns-title">Offene Kampagnen</h2>
+      <button class="btn btn-secondary" id="btn-create-campaign" style="display:none" onclick="openCreateCampaignModal()">+ Kampagne erstellen</button>
+    </div>
+    <div id="campaigns-list"><div class="empty-state"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- ═══ CREATE CAMPAIGN MODAL ═══ -->
+<div class="modal-overlay" id="campaign-modal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="closeCampaignModal()">×</button>
+    <h3 id="campaign-modal-title">Kampagne erstellen</h3>
+    <p class="sub">Beschreibe deine Kooperation – Influencer können sich dann bewerben.</p>
+    <form onsubmit="handleSaveCampaign(event)">
+      <input type="hidden" id="campaign-edit-id" />
+      <div class="form-group"><label>Titel</label><input type="text" id="campaign-title" placeholder="z.B. Frühjahrs-Kampagne 2026" required /></div>
+      <div class="form-group"><label>Beschreibung</label><textarea id="campaign-desc" placeholder="Was soll der Influencer machen? Welche Plattform? Was bietest du an?" required style="min-height:110px"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Budget (optional)</label><input type="text" id="campaign-budget" placeholder="z.B. 300€ oder Produkttausch" /></div>
+        <div class="form-group"><label>Kategorie</label>
+          <select id="campaign-category">
+            <option value="">Alle Kategorien</option>
+            <option>Mode & Beauty</option><option>Food & Lifestyle</option>
+            <option>Fitness & Sport</option><option>Reise & Travel</option>
+            <option>Technik & Gaming</option><option>Familie & Eltern</option>
+            <option>Business & Finanzen</option><option>Unterhaltung & Comedy</option>
+            <option>Natur & Nachhaltigkeit</option><option>Sonstiges</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Standort / Region (optional)</label><input type="text" id="campaign-location" placeholder="z.B. Berlin, bundesweit…" /></div>
+      <div class="form-error" id="campaign-error"></div>
+      <button type="submit" class="btn btn-secondary btn-lg btn-block" style="margin-top:4px" id="campaign-btn">Kampagne veröffentlichen →</button>
     </form>
   </div>
 </div>
@@ -747,6 +813,7 @@ function navigate(view, param) {
   if (view === 'offers') { offerTabMode = 'received'; loadOffers() }
   if (view === 'profile-edit') fillEditForm()
   if (view === 'setup') prefillSetup()
+  if (view === 'campaigns') loadCampaigns()
 }
 
 function updateNav() {
@@ -992,6 +1059,11 @@ async function setupDashboard() {
     : 'Finde passende Influencer für deine nächste Kampagne.'
   document.getElementById('dash-profile-link').onclick = () => showProfileView(currentUser.id)
 
+  // Kampagnen-Card nur für Unternehmen einblenden
+  const campaignsCard = document.getElementById('dash-campaigns-card')
+  if (currentProfile.role === 'company') campaignsCard.style.display = 'block'
+  else campaignsCard.style.display = 'none'
+
   if (!sb) return
   const { count } = await sb.from('offers').select('id', { count: 'exact', head: true })
     .eq('receiver_id', currentUser.id).eq('status', 'pending')
@@ -1094,10 +1166,10 @@ async function showProfileView(userId) {
 // ════════════════════════════════════════════════════════════
 // OFFERS
 // ════════════════════════════════════════════════════════════
-function openOfferModal(receiverId, name) {
+function openOfferModal(receiverId, name, campaignTitle) {
   document.getElementById('offer-receiver-id').value = receiverId
   document.getElementById('offer-modal-to').textContent = `An: ${name}`
-  document.getElementById('offer-title').value = ''
+  document.getElementById('offer-title').value = campaignTitle ? `Bewerbung: ${campaignTitle}` : ''
   document.getElementById('offer-message').value = ''
   document.getElementById('offer-budget').value = ''
   document.getElementById('offer-error').classList.remove('show')
@@ -1231,17 +1303,177 @@ function showToast(msg, type = '') {
   setTimeout(() => el.remove(), 3500)
 }
 
-// Close offer modal on outside click
+// Close modals on outside click / Escape
 document.getElementById('offer-modal').addEventListener('click', function(e) {
   if (e.target === this) closeOfferModal()
 })
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferModal() })
+document.getElementById('campaign-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCampaignModal()
+})
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeOfferModal(); closeCampaignModal() }
+})
 
 function togglePw(id, btn) {
   const input = document.getElementById(id)
   const show = input.type === 'password'
   input.type = show ? 'text' : 'password'
   btn.textContent = show ? '🙈' : '👁'
+}
+
+// ════════════════════════════════════════════════════════════
+// CAMPAIGNS
+// ════════════════════════════════════════════════════════════
+function openCreateCampaignModal(campaign) {
+  document.getElementById('campaign-edit-id').value = campaign?.id || ''
+  document.getElementById('campaign-modal-title').textContent = campaign ? 'Kampagne bearbeiten' : 'Kampagne erstellen'
+  document.getElementById('campaign-btn').textContent = campaign ? 'Änderungen speichern →' : 'Kampagne veröffentlichen →'
+  document.getElementById('campaign-title').value = campaign?.title || ''
+  document.getElementById('campaign-desc').value = campaign?.description || ''
+  document.getElementById('campaign-budget').value = campaign?.budget || ''
+  document.getElementById('campaign-category').value = campaign?.category || ''
+  document.getElementById('campaign-location').value = campaign?.location || ''
+  document.getElementById('campaign-error').classList.remove('show')
+  document.getElementById('campaign-modal').classList.add('open')
+}
+function closeCampaignModal() { document.getElementById('campaign-modal').classList.remove('open') }
+
+async function handleSaveCampaign(e) {
+  e.preventDefault()
+  if (!sb || !currentUser) return
+  const btn = document.getElementById('campaign-btn')
+  const errEl = document.getElementById('campaign-error')
+  errEl.classList.remove('show')
+  btn.disabled = true; btn.textContent = 'Wird gespeichert…'
+
+  const payload = {
+    company_id: currentUser.id,
+    title: document.getElementById('campaign-title').value.trim(),
+    description: document.getElementById('campaign-desc').value.trim(),
+    budget: document.getElementById('campaign-budget').value.trim(),
+    category: document.getElementById('campaign-category').value,
+    location: document.getElementById('campaign-location').value.trim(),
+    status: 'open'
+  }
+
+  const editId = document.getElementById('campaign-edit-id').value
+  let error
+  if (editId) {
+    ;({ error } = await sb.from('campaigns').update(payload).eq('id', editId).eq('company_id', currentUser.id))
+  } else {
+    ;({ error } = await sb.from('campaigns').insert(payload))
+  }
+
+  btn.disabled = false; btn.textContent = editId ? 'Änderungen speichern →' : 'Kampagne veröffentlichen →'
+  if (error) { errEl.textContent = error.message; errEl.classList.add('show') }
+  else {
+    closeCampaignModal()
+    showToast(editId ? 'Kampagne aktualisiert ✓' : 'Kampagne veröffentlicht! ✓', 'success')
+    loadCampaigns()
+  }
+}
+
+async function closeCampaignItem(campaignId) {
+  if (!sb || !currentUser) return
+  const { error } = await sb.from('campaigns').update({ status: 'closed' }).eq('id', campaignId).eq('company_id', currentUser.id)
+  if (!error) { showToast('Kampagne geschlossen', ''); loadCampaigns() }
+}
+
+async function deleteCampaign(campaignId) {
+  if (!sb || !currentUser) return
+  if (!confirm('Kampagne wirklich löschen?')) return
+  const { error } = await sb.from('campaigns').delete().eq('id', campaignId).eq('company_id', currentUser.id)
+  if (!error) { showToast('Kampagne gelöscht', ''); loadCampaigns() }
+}
+
+async function loadCampaigns() {
+  if (!sb || !currentUser || !currentProfile) return
+  const isCompany = currentProfile.role === 'company'
+
+  // Titel & Button je nach Rolle
+  document.getElementById('campaigns-title').textContent = isCompany ? 'Meine Kampagnen' : 'Offene Kampagnen'
+  document.getElementById('btn-create-campaign').style.display = isCompany ? 'inline-block' : 'none'
+
+  const list = document.getElementById('campaigns-list')
+  list.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>'
+
+  let query = sb.from('campaigns').select('*, profiles(name, avatar_color)').order('created_at', { ascending: false })
+
+  if (isCompany) {
+    query = query.eq('company_id', currentUser.id)
+  } else {
+    query = query.eq('status', 'open')
+  }
+
+  const { data, error } = await query.limit(60)
+
+  if (error) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Fehler beim Laden</h3><p>${esc(error.message)}</p></div>`
+    return
+  }
+
+  if (!data?.length) {
+    list.innerHTML = isCompany
+      ? `<div class="empty-state"><div class="empty-icon">📢</div><h3>Noch keine Kampagnen</h3><p>Erstelle deine erste Kooperationsausschreibung – Influencer können sich dann bewerben.</p><button class="btn btn-secondary" style="margin-top:16px" onclick="openCreateCampaignModal()">+ Kampagne erstellen</button></div>`
+      : `<div class="empty-state"><div class="empty-icon">📢</div><h3>Keine Kampagnen gefunden</h3><p>Noch hat kein Unternehmen eine Ausschreibung veröffentlicht.</p></div>`
+    return
+  }
+
+  if (isCompany) {
+    list.innerHTML = `<div class="campaigns-grid">${data.map(c => renderCampaignCardCompany(c)).join('')}</div>`
+  } else {
+    list.innerHTML = `<div class="campaigns-grid">${data.map(c => renderCampaignCardInfluencer(c)).join('')}</div>`
+  }
+}
+
+function renderCampaignCardInfluencer(c) {
+  const company = c.profiles || {}
+  return `
+    <div class="campaign-card">
+      <div class="campaign-card-header">
+        <h4>${esc(c.title)}</h4>
+        <span class="offer-status status-open">Offen</span>
+      </div>
+      <div class="campaign-company">
+        <div class="campaign-avatar" style="background:${company.avatar_color||'#6C3CE1'}">${(company.name||'?')[0].toUpperCase()}</div>
+        <span class="campaign-company-name">${esc(company.name||'Unbekannt')}</span>
+      </div>
+      <div class="campaign-tags">
+        ${c.category ? `<span class="tag">📂 ${esc(c.category)}</span>` : ''}
+        ${c.location ? `<span class="tag">📍 ${esc(c.location)}</span>` : ''}
+        ${c.budget ? `<span class="tag">💰 ${esc(c.budget)}</span>` : ''}
+      </div>
+      <div class="campaign-desc">${esc(c.description)}</div>
+      <div class="campaign-actions">
+        <button class="btn btn-primary btn-sm" onclick="openOfferModal('${c.company_id}','${esc(company.name||'Unbekannt')}','${esc(c.title)}')">Bewerben</button>
+        <button class="btn btn-outline btn-sm" onclick="showProfileView('${c.company_id}')">Unternehmen ansehen</button>
+      </div>
+    </div>
+  `
+}
+
+function renderCampaignCardCompany(c) {
+  const statusText = c.status === 'open' ? 'Offen' : 'Geschlossen'
+  return `
+    <div class="campaign-card">
+      <div class="campaign-card-header">
+        <h4>${esc(c.title)}</h4>
+        <span class="offer-status status-${c.status}">${statusText}</span>
+      </div>
+      <div class="campaign-tags">
+        ${c.category ? `<span class="tag">📂 ${esc(c.category)}</span>` : ''}
+        ${c.location ? `<span class="tag">📍 ${esc(c.location)}</span>` : ''}
+        ${c.budget ? `<span class="tag">💰 ${esc(c.budget)}</span>` : ''}
+      </div>
+      <div class="campaign-desc">${esc(c.description)}</div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">Erstellt am ${new Date(c.created_at).toLocaleDateString('de-DE')}</div>
+      <div class="campaign-manage-actions">
+        <button class="btn btn-outline btn-sm" onclick="openCreateCampaignModal(${JSON.stringify({id:c.id,title:c.title,description:c.description,budget:c.budget,category:c.category,location:c.location}).replace(/"/g,'&quot;')})">Bearbeiten</button>
+        ${c.status === 'open' ? `<button class="btn btn-outline btn-sm" onclick="closeCampaignItem('${c.id}')">Schließen</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="deleteCampaign('${c.id}')">Löschen</button>
+      </div>
+    </div>
+  `
 }
 
 // ════════════════════════════════════════════════════════════
