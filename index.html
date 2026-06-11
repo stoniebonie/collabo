@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Collabo – Influencer & Marken finden sich</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>" />
+  <!-- Version gepinnt: ungepinntes @2 lädt bei jedem CDN-Release neuen Code -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --primary: #6C3CE1; --primary-light: #8B5CF6; --secondary: #F59E0B;
@@ -722,53 +724,72 @@ async function initApp() {
 
   sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-  sb.auth.onAuthStateChange(async (event, session) => {
+  // WICHTIG: Kein await direkt im Callback! supabase-js hält währenddessen
+  // einen internen Lock — getUser()/signOut()/Queries darin deadlocken und
+  // lassen auch signInWithPassword() nie zurückkehren ("Wird angemeldet…"-Hänger).
+  sb.auth.onAuthStateChange((event, session) => {
     console.log('Auth event:', event, session?.user?.email)
-    try {
-      if (event === 'SIGNED_OUT') {
-        currentUser = null; currentProfile = null
-        authHandled = false
-        hideLoading()
-        navigate('landing')
-        return
-      }
+    setTimeout(() => handleAuthChange(event, session), 0)
+  })
+}
 
-      if (session?.user) {
-        currentUser = session.user
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ])
+}
 
-        // Nur bei echten Login-Events navigieren, nicht bei Token-Refresh etc.
-        const isLoginEvent = event === 'SIGNED_IN' || event === 'SIGNED_UP' || event === 'INITIAL_SESSION'
-        if (isLoginEvent && !authHandled) {
-          authHandled = true
+async function handleAuthChange(event, session) {
+  try {
+    if (event === 'SIGNED_OUT') {
+      currentUser = null; currentProfile = null
+      authHandled = false
+      hideLoading()
+      navigate('landing')
+      return
+    }
 
-          // Prüfen ob der User noch wirklich in Supabase existiert (nicht gelöscht)
-          const { error: userError } = await sb.auth.getUser()
+    if (session?.user) {
+      currentUser = session.user
+
+      // Nur bei echten Login-Events navigieren, nicht bei Token-Refresh etc.
+      const isLoginEvent = event === 'SIGNED_IN' || event === 'SIGNED_UP' || event === 'INITIAL_SESSION'
+      if (isLoginEvent && !authHandled) {
+        authHandled = true
+
+        // Prüfen ob der User noch wirklich in Supabase existiert (nicht gelöscht)
+        try {
+          const { error: userError } = await withTimeout(sb.auth.getUser(), 8000)
           if (userError) {
             console.warn('Session ungültig (User gelöscht?):', userError.message)
-            await sb.auth.signOut()
+            await withTimeout(sb.auth.signOut({ scope: 'local' }), 3000).catch(() => {})
             currentUser = null; currentProfile = null; authHandled = false
             hideLoading()
             navigate('landing')
             return
           }
-
-          try { await loadCurrentProfile() } catch(e) { currentProfile = null }
-          hideLoading()
-          navigate(currentProfile ? 'dashboard' : 'setup')
-        } else {
-          // TOKEN_REFRESHED o.ä. — nur User aktualisieren
-          hideLoading()
+        } catch(e) {
+          // Timeout/Netzwerkfehler: User nicht aussperren, einfach weitermachen
+          console.warn('getUser-Check übersprungen:', e.message)
         }
-      } else {
-        // Kein User (z.B. INITIAL_SESSION ohne gespeicherte Session)
+
+        try { await withTimeout(loadCurrentProfile(), 8000) } catch(e) { currentProfile = null }
         hideLoading()
-        if (!currentUser) navigate('landing')
+        navigate(currentProfile ? 'dashboard' : 'setup')
+      } else {
+        // TOKEN_REFRESHED o.ä. — nur User aktualisieren
+        hideLoading()
       }
-    } catch(e) {
-      console.error('Auth handler error:', e)
+    } else {
+      // Kein User (z.B. INITIAL_SESSION ohne gespeicherte Session)
       hideLoading()
+      if (!currentUser) navigate('landing')
     }
-  })
+  } catch(e) {
+    console.error('Auth handler error:', e)
+    hideLoading()
+  }
 }
 
 function hideLoading() {
@@ -848,11 +869,16 @@ async function handleRegister(e) {
   errEl.classList.remove('show')
   btn.disabled = true; btn.textContent = 'Wird erstellt…'
 
-  const { data, error } = await sb.auth.signUp({
-    email: document.getElementById('reg-email').value.trim(),
-    password: document.getElementById('reg-password').value,
-    options: { data: { name: document.getElementById('reg-name').value.trim() } }
-  })
+  let data = null, error = null
+  try {
+    ;({ data, error } = await withTimeout(sb.auth.signUp({
+      email: document.getElementById('reg-email').value.trim(),
+      password: document.getElementById('reg-password').value,
+      options: { data: { name: document.getElementById('reg-name').value.trim() } }
+    }), 12000))
+  } catch(e) {
+    error = { message: 'Zeitüberschreitung – bitte Verbindung prüfen und nochmal versuchen.' }
+  }
 
   console.log('Register result:', data, error)
   btn.disabled = false; btn.textContent = 'Registrieren →'
@@ -878,10 +904,15 @@ async function handleLogin(e) {
   errEl.classList.remove('show')
   btn.disabled = true; btn.textContent = 'Wird angemeldet…'
 
-  const { data: loginData, error } = await sb.auth.signInWithPassword({
-    email: document.getElementById('login-email').value.trim(),
-    password: document.getElementById('login-password').value
-  })
+  let loginData = null, error = null
+  try {
+    ;({ data: loginData, error } = await withTimeout(sb.auth.signInWithPassword({
+      email: document.getElementById('login-email').value.trim(),
+      password: document.getElementById('login-password').value
+    }), 12000))
+  } catch(e) {
+    error = { message: 'Zeitüberschreitung – bitte Verbindung prüfen und nochmal versuchen.' }
+  }
 
   console.log('Login result:', loginData, error)
   btn.disabled = false; btn.textContent = 'Anmelden →'
@@ -898,9 +929,11 @@ async function handleLogout() {
   currentProfile = null
   authHandled = false
 
-  // signOut mit Timeout — hängt sich sonst manchmal auf
+  // signOut mit Timeout — hängt sich sonst manchmal auf.
+  // scope:'local' räumt die Session ohne Server-Roundtrip aus dem localStorage,
+  // sonst bleibt bei einem Hänger die alte Session liegen.
   try {
-    const signOutPromise = sb ? sb.auth.signOut() : Promise.resolve()
+    const signOutPromise = sb ? sb.auth.signOut({ scope: 'local' }) : Promise.resolve()
     await Promise.race([signOutPromise, new Promise(r => setTimeout(r, 3000))])
   } catch(e) {
     console.warn('signOut error (ignoriert):', e)
